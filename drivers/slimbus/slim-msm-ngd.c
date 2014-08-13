@@ -625,12 +625,18 @@ static int ngd_xferandwait_ack(struct slim_controller *ctrl,
 			ret = -ETIMEDOUT;
 		else
 			ret = txn->ec;
+	} else if (ret == -EREMOTEIO &&
+			(txn->mc == SLIM_USR_MC_CHAN_CTRL ||
+			 txn->mc == SLIM_USR_MC_DISCONNECT_PORT)) {
+		/* HW restarting, channel/port removal should succeed */
+		return 0;
 	}
 
 	if (ret) {
 		if (ret != -EREMOTEIO || txn->mc != SLIM_USR_MC_CHAN_CTRL)
 			SLIM_ERR(dev, "master msg:0x%x,tid:%d ret:%d\n",
 				txn->mc, txn->tid, ret);
+		WARN(1, "timeout during xfer and wait");
 		mutex_lock(&ctrl->m_ctrl);
 		ctrl->txnt[txn->tid] = NULL;
 		mutex_unlock(&ctrl->m_ctrl);
@@ -1161,7 +1167,6 @@ static int ngd_notify_slaves(void *data)
 		set_current_state(TASK_INTERRUPTIBLE);
 		wait_for_completion(&dev->qmi.slave_notify);
 		/* Probe devices for first notification */
-
 		if (!i) {
 			i++;
 			dev->err = 0;

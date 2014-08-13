@@ -265,13 +265,14 @@ static void __ref cpu_up_down_work(struct work_struct *work)
 
 		update_per_cpu_stat();
 		for_each_online_cpu(cpu) {
-			l_nr_threshold =
-				cpu_nr_run_threshold << 1 / (num_online_cpus());
 			if (cpu == 0)
 				continue;
+			if (check_down_lock(cpu) || check_cpuboost(cpu))
+				break;
+			l_nr_threshold =
+				cpu_nr_run_threshold << 1 / (num_online_cpus());
 			l_ip_info = &per_cpu(ip_info, cpu);
-			if (!check_down_lock(cpu) &&
-			    l_ip_info->cpu_nr_running < l_nr_threshold)
+			if (l_ip_info->cpu_nr_running < l_nr_threshold)
 				cpu_down(cpu);
 			if (target >= num_online_cpus())
 				break;
@@ -317,6 +318,7 @@ static void intelli_plug_suspend(struct work_struct *work)
 		min_cpus_online_res = min_cpus_online;
 		min_cpus_online = 1;
 		max_cpus_online_res = max_cpus_online;
+		max_cpus_online = 4;
 		mutex_unlock(&intelli_plug_mutex);
 
 		/* Flush hotplug workqueue */
@@ -329,7 +331,9 @@ static void intelli_plug_suspend(struct work_struct *work)
 				continue;
 			cpu_down(cpu);
 		}
+		mutex_lock(&intelli_plug_mutex);
 		need_boost = 1;
+		mutex_unlock(&intelli_plug_mutex);
 		dprintk("%s: suspended!\n", INTELLI_PLUG);
 	}
 }
@@ -363,9 +367,13 @@ static void __ref intelli_plug_resume(struct work_struct *work)
 		/* Fire up all CPUs */
 		if (need_boost) {
 			for_each_cpu_not(cpu, cpu_online_mask) {
+				mutex_lock(&intelli_plug_mutex);
 				need_boost = 0;
+				mutex_unlock(&intelli_plug_mutex);
 				if (cpu == 0) {
+					mutex_lock(&intelli_plug_mutex);
 					need_boost = 1;
+					mutex_unlock(&intelli_plug_mutex);
 					continue;
 				}
 				cpu_up(cpu);
@@ -404,8 +412,7 @@ static void __intelli_plug_resume(struct early_suspend *handler)
 		return;
 
 	cancel_delayed_work_sync(&suspend_work);
-	if (need_boost)
-		schedule_work_on(0, &resume_work);
+	schedule_work_on(0, &resume_work);
 }
 
 #ifdef CONFIG_LCD_NOTIFY
