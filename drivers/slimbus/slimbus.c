@@ -801,7 +801,6 @@ int slim_assign_laddr(struct slim_controller *ctrl, const u8 *e_addr,
 #ifdef CONFIG_SND_SOC_ES325_SLIM
 	struct sbi_boardinfo *bi;
 #endif /* CONFIG_SND_SOC_ES325_SLIM */
-	struct list_head *pos, *next;
 
 	mutex_lock(&ctrl->m_ctrl);
 	/* already assigned */
