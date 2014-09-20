@@ -102,6 +102,8 @@
 #define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 160
 #define WCD9XXX_CS_MEAS_INVALD_RANGE_HIGH_MV 265
 
+#define HPH_TRANS_THRESHOLD 2
+
 /*
  * Threshold used to detect euro headset
  * with current source
@@ -302,6 +304,11 @@ static bool __wcd9xxx_switch_micbias(struct wcd9xxx_mbhc *mbhc,
 			   0x04;
 		if (!override)
 			wcd9xxx_turn_onoff_override(mbhc, true);
+
+		snd_soc_update_bits(codec, WCD9XXX_A_MAD_ANA_CTRL,
+				    0x10, 0x00);
+		snd_soc_update_bits(codec, WCD9XXX_A_LDO_H_MODE_1,
+				    0x20, 0x00);
 		/* Adjust threshold if Mic Bias voltage changes */
 		if (d->micb_mv != VDDIO_MICBIAS_MV) {
 			cfilt_k_val = __wcd9xxx_resmgr_get_k_val(mbhc,
@@ -363,6 +370,11 @@ static bool __wcd9xxx_switch_micbias(struct wcd9xxx_mbhc *mbhc,
 		if ((!checkpolling || mbhc->polling_active) &&
 		    restartpolling)
 			wcd9xxx_pause_hs_polling(mbhc);
+
+			snd_soc_update_bits(codec, WCD9XXX_A_MAD_ANA_CTRL,
+					    0x10, 0x10);
+			snd_soc_update_bits(codec, WCD9XXX_A_LDO_H_MODE_1,
+					    0x20, 0x20);
 		/* Reprogram thresholds */
 		if (d->micb_mv != VDDIO_MICBIAS_MV) {
 			cfilt_k_val =
@@ -925,6 +937,16 @@ static void wcd9xxx_report_plug(struct wcd9xxx_mbhc *mbhc, int insertion,
 			 jack_type, mbhc->hph_status);
 		wcd9xxx_jack_report(mbhc, &mbhc->headset_jack,
 				    mbhc->hph_status, WCD9XXX_JACK_MASK);
+		/*
+		 * if PA is already on, switch micbias
+		 * source to VDDIO
+		 */
+		if (((mbhc->current_plug == PLUG_TYPE_HEADSET) ||
+		     (mbhc->current_plug == PLUG_TYPE_ANC_HEADPHONE)) &&
+		    ((mbhc->event_state & (1 << MBHC_EVENT_PA_HPHL |
+			1 << MBHC_EVENT_PA_HPHR))))
+			__wcd9xxx_switch_micbias(mbhc, 1, false,
+						 false);
 		wcd9xxx_clr_and_turnon_hph_padac(mbhc);
 	}
 	/* Setup insert detect */
@@ -2303,15 +2325,6 @@ static void wcd9xxx_find_plug_and_report(struct wcd9xxx_mbhc *mbhc,
 		 */
 		msleep(100);
 
-		/*
-		 * if PA is already on, switch micbias
-		 * source to VDDIO
-		 */
-		if (mbhc->event_state &
-		(1 << MBHC_EVENT_PA_HPHL | 1 << MBHC_EVENT_PA_HPHR |
-		1 << MBHC_EVENT_PRE_TX_1_3_ON))
-			__wcd9xxx_switch_micbias(mbhc, 1, false,
-						 false);
 		wcd9xxx_start_hs_polling(mbhc);
 	} else if (plug_type == PLUG_TYPE_HIGH_HPH) {
 		if (mbhc->mbhc_cfg->detect_extn_cable) {
@@ -3006,6 +3019,7 @@ static void wcd9xxx_correct_swch_plug(struct work_struct *work)
 	unsigned long timeout;
 	int retry = 0, pt_gnd_mic_swap_cnt = 0;
 	int highhph_cnt = 0;
+	int hph_trans_cnt = 0;
 	bool correction = false;
 	bool current_source_enable;
 	bool wrk_complete = true, highhph = false;
@@ -3131,6 +3145,13 @@ static void wcd9xxx_correct_swch_plug(struct work_struct *work)
 				}
 			} else
 				pt_gnd_mic_swap_cnt = 0;
+
+			if (plug_type == PLUG_TYPE_HEADSET) {
+				hph_trans_cnt++;
+				if (hph_trans_cnt < HPH_TRANS_THRESHOLD)
+					continue;
+			} else
+				hph_trans_cnt = 0;
 
 			WCD9XXX_BCL_LOCK(mbhc->resmgr);
 			/* Turn off override/current source */
@@ -5010,9 +5031,12 @@ int wcd9xxx_mbhc_init(struct wcd9xxx_mbhc *mbhc, struct wcd9xxx_resmgr *resmgr,
 	core_res = mbhc->resmgr->core_res;
 
 #ifdef CONFIG_MACH_LGE
-if (!mbhc_enabled)
-	goto skip;
+	if (!mbhc_enabled)
+		goto skip_lg;
 #endif
+	if (is_mbhc_disabled())
+		goto skip;
+
 	ret = wcd9xxx_request_irq(core_res, mbhc->intr_ids->insertion,
 				  wcd9xxx_hs_insert_irq,
 				  "Headset insert detect", mbhc);
@@ -5050,6 +5074,7 @@ if (!mbhc_enabled)
 		goto err_release_irq;
 	}
 
+skip :
 	ret = wcd9xxx_request_irq(core_res, mbhc->intr_ids->hph_left_ocp,
 				  wcd9xxx_hphl_ocp_irq, "HPH_L OCP detect",
 				  mbhc);
@@ -5074,7 +5099,7 @@ if (!mbhc_enabled)
 					     1 << WCD9XXX_COND_HPH);
 
 #ifdef CONFIG_MACH_LGE
-skip:
+skip_lg:
 #endif
 
 	pr_debug("%s: leave ret %d\n", __func__, ret);

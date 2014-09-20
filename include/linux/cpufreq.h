@@ -204,6 +204,7 @@ extern int __cpufreq_driver_target(struct cpufreq_policy *policy,
 				   unsigned int target_freq,
 				   unsigned int relation);
 
+/* This function is used in MSM_THERMAL DRIVER */
 extern int msm_cpufreq_get_index(struct cpufreq_policy *policy,
 				 unsigned int freq);
 
@@ -403,6 +404,9 @@ extern struct cpufreq_governor cpufreq_gov_conservative;
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE)
 extern struct cpufreq_governor cpufreq_gov_interactive;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_interactive)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_BACON)
+extern struct cpufreq_governor cpufreq_gov_bacon;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_bacon)
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTELLIDEMAND)
 extern struct cpufreq_governor cpufreq_gov_intellidemand;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_intellidemand)

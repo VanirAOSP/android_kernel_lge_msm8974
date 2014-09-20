@@ -1,6 +1,6 @@
 VERSION = 3
 PATCHLEVEL = 4
-SUBLEVEL = 102
+SUBLEVEL = 103
 EXTRAVERSION =
 NAME = Saber-toothed Squirrel
 
@@ -357,7 +357,7 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 OPTIMIZATION_FLAGS = -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 \
                      -ffast-math -fsingle-precision-constant \
                      -fgcse-lm -fgcse-las -fgcse-sm -fsched-spec-load -fforce-addr \
-                     -mvectorize-with-neon-quad -funroll-loops -munaligned-access \
+                     -mvectorize-with-neon-quad -munaligned-access \
                      -ftree-loop-im -ftree-loop-ivcanon -fgcse-after-reload \
 		     -fivopts -ftree-vectorize -fmodulo-sched
 CFLAGS_MODULE   = $(OPTIMIZATION_FLAGS) -DMODULE -fno-pic
@@ -380,9 +380,7 @@ KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
-		   -Wno-maybe-uninitialized \
-		   -Wno-sizeof-pointer-memaccess \
+		   -Wno-format-security -g0 -DNDEBUG \
 		   -fno-delete-null-pointer-checks \
                    -funswitch-loops -fpredictive-commoning \
 		   $(OPTIMIZATION_FLAGS)

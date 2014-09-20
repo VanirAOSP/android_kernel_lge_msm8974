@@ -21,12 +21,11 @@ Required properties:
       - qcom,msm-pcm-low-latency : Flag indicating whether
         the device node is of type low latency.
 
-      - qcom,latency-level :  Flag indicating whether the device node
-			      is of type regular low latency or ultra
-			      low latency.
-                              regular : regular low latency stream
-			      ultra   : ultra low latency stream
-
+      - qcom,latency-level : Flag indicating whether the device node
+                            is of type regular low latency or ultra
+                            low latency.
+                            regular : regular low latency stream
+                            ultra : ultra low latency stream
 * msm-pcm-routing
 
 Required properties:
@@ -112,7 +111,7 @@ Required properties:
 
 Required properties:
 
- - compatible : "qti,msm-pcm-loopback"
+ - compatible : "qcom,msm-pcm-loopback"
 
 * msm-dai-q6
 
@@ -233,7 +232,7 @@ Required properties:
 
 Example:
 
-        qcom,msm-pcm {
+	qcom,msm-pcm {
 		compatible = "qcom,msm-pcm-dsp";
 		qcom,msm-pcm-dsp-id = <0>;
 	};
@@ -242,8 +241,7 @@ Example:
 		compatible = "qcom,msm-pcm-dsp";
 		qcom,msm-pcm-dsp-id = <1>;
 		qcom,msm-pcm-low-latency;
-        };
-
+	};
         qcom,msm-pcm-routing {
                 compatible = "qcom,msm-pcm-routing";
         };
