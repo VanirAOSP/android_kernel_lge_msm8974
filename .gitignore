@@ -86,10 +86,6 @@ GRTAGS
 GSYMS
 GTAGS
 
-android-toolchain/share/gdb/python/gdb/__pycache__/
-android-toolchain/share/gdb/python/gdb/command/__pycache__/
-android-toolchain/share/gdb/python/gdb/function/__pycache__/
-
 *.orig
 *~
 \#*#
