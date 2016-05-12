@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # ================= NO CHANGE NEEDED BELOW! =====================
+trash this changey
 
 usage() {
     usagestr=$(cat <<EOF
